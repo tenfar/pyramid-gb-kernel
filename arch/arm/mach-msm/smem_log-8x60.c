@@ -39,7 +39,6 @@
 #include <mach/smem_log.h>
 
 #include "smd_private.h"
-#include "smd_rpc_sym.h"
 #include "modem_notifier.h"
 
 #define DEBUG
@@ -1397,8 +1396,7 @@ static int _debug_dump_sym(int log, char *buf, int max, uint32_t cont)
 				i += scnprintf(buf + i, max - i,
 					       " %08x %08x %08x",
 					       data1, data2, data3);
-			} else if (id_val == ONCRPC_LOG_EVENT_STD_CALL) {
-				sym = smd_rpc_get_sym(data2);
+			
 
 				if (sym)
 					i += scnprintf(buf + i, max - i,

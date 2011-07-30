@@ -2077,33 +2077,6 @@ static struct notifier_block msm_rpcrouter_nb = {
 };
 
 #if defined(CONFIG_DEBUG_FS)
-static int dump_servers(char *buf, int max)
-{
-	int i = 0;
-	unsigned long flags;
-	struct rr_server *svr;
-	const char *sym;
-
-	spin_lock_irqsave(&server_list_lock, flags);
-	list_for_each_entry(svr, &server_list, list) {
-		i += scnprintf(buf + i, max - i, "pdev_name: %s\n",
-			       svr->pdev_name);
-		i += scnprintf(buf + i, max - i, "pid: 0x%08x\n", svr->pid);
-		i += scnprintf(buf + i, max - i, "cid: 0x%08x\n", svr->cid);
-		i += scnprintf(buf + i, max - i, "prog: 0x%08x", svr->prog);
-		sym = smd_rpc_get_sym(svr->prog);
-		if (sym)
-			i += scnprintf(buf + i, max - i, " (%s)\n", sym);
-		else
-			i += scnprintf(buf + i, max - i, "\n");
-		i += scnprintf(buf + i, max - i, "vers: 0x%08x\n", svr->vers);
-		i += scnprintf(buf + i, max - i, "\n");
-	}
-	spin_unlock_irqrestore(&server_list_lock, flags);
-
-	return i;
-}
-
 static int dump_remote_endpoints(char *buf, int max)
 {
 	int i = 0;
@@ -2125,59 +2098,6 @@ static int dump_remote_endpoints(char *buf, int max)
 	return i;
 }
 
-static int dump_msm_rpc_endpoint(char *buf, int max)
-{
-	int i = 0;
-	unsigned long flags;
-	struct msm_rpc_reply *reply;
-	struct msm_rpc_endpoint *ept;
-	struct rr_packet *pkt;
-	const char *sym;
-
-	spin_lock_irqsave(&local_endpoints_lock, flags);
-	list_for_each_entry(ept, &local_endpoints, list) {
-		i += scnprintf(buf + i, max - i, "pid: 0x%08x\n", ept->pid);
-		i += scnprintf(buf + i, max - i, "cid: 0x%08x\n", ept->cid);
-		i += scnprintf(buf + i, max - i, "dst_pid: 0x%08x\n",
-			       ept->dst_pid);
-		i += scnprintf(buf + i, max - i, "dst_cid: 0x%08x\n",
-			       ept->dst_cid);
-		i += scnprintf(buf + i, max - i, "dst_prog: 0x%08x",
-			       be32_to_cpu(ept->dst_prog));
-		sym = smd_rpc_get_sym(be32_to_cpu(ept->dst_prog));
-		if (sym)
-			i += scnprintf(buf + i, max - i, " (%s)\n", sym);
-		else
-			i += scnprintf(buf + i, max - i, "\n");
-		i += scnprintf(buf + i, max - i, "dst_vers: 0x%08x\n",
-			       be32_to_cpu(ept->dst_vers));
-		i += scnprintf(buf + i, max - i, "reply_cnt: %i\n",
-			       ept->reply_cnt);
-		i += scnprintf(buf + i, max - i, "restart_state: %i\n",
-			       ept->restart_state);
-
-		i += scnprintf(buf + i, max - i, "outstanding xids:\n");
-		spin_lock(&ept->reply_q_lock);
-		list_for_each_entry(reply, &ept->reply_pend_q, list)
-			i += scnprintf(buf + i, max - i, "    xid = %u\n",
-				       ntohl(reply->xid));
-		spin_unlock(&ept->reply_q_lock);
-
-		i += scnprintf(buf + i, max - i, "complete unread packets:\n");
-		spin_lock(&ept->read_q_lock);
-		list_for_each_entry(pkt, &ept->read_q, list) {
-			i += scnprintf(buf + i, max - i, "    mid = %i\n",
-				       pkt->mid);
-			i += scnprintf(buf + i, max - i, "    length = %i\n",
-				       pkt->length);
-		}
-		spin_unlock(&ept->read_q_lock);
-		i += scnprintf(buf + i, max - i, "\n");
-	}
-	spin_unlock_irqrestore(&local_endpoints_lock, flags);
-
-	return i;
-}
 
 #define DEBUG_BUFMAX 4096
 static char debug_buffer[DEBUG_BUFMAX];
@@ -2216,13 +2136,10 @@ static void debugfs_init(void)
 	if (IS_ERR(dent))
 		return;
 
-	debug_create("dump_msm_rpc_endpoints", 0444, dent,
-		     dump_msm_rpc_endpoint);
+	
 	debug_create("dump_remote_endpoints", 0444, dent,
 		     dump_remote_endpoints);
-	debug_create("dump_servers", 0444, dent,
-		     dump_servers);
-
+	
 }
 
 #else
